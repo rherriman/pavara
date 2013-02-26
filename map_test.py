@@ -5,9 +5,9 @@ from direct.gui.DirectGui import *
 from direct.showbase.ShowBase import ShowBase
 
 from pavara.maps import load_maps
-from pavara.world import Block, Hector
 from pavara.network import Server, Client
 from pavara.constants import TCP_PORT
+from pavara.world import Block, FreeSolid, Hector
 
 class Pavara (ShowBase):
     def __init__(self, *args):
@@ -18,31 +18,30 @@ class Pavara (ShowBase):
         self.x = None
         self.y = None
 
-        # init panda3d crap
+        # Init Panda3D crap.
         self.initP3D()
-
         maps = load_maps('Maps/bodhi.xml', self.cam)
         for map in maps:
             print map.name, '--', map.author
         self.map = maps[0]
+        print render.analyze()
 
         # Testing physical hector.
-        #self.hector = self.map.world.attach(Hector())
-        #self.hector.setupColor({"barrel_color": Vec3(.4,.7,.4), "barrel_trim_color": Vec3(.8,.9,.6),
-        #                 "visor_color": Vec3(.3,.6,1), "body_color":Vec3(.2,.5,.3)})
-        #incarn = self.map.world.get_incarn()
-        #self.hector.move(incarn.pos)
-        #self.hector.actor.set_h(incarn.angle)
+        incarn = self.map.world.get_incarn()
+        self.hector = self.map.world.attach(Hector(incarn))
+        self.hector.setupColor({"barrel_color": Vec3(.7,.7,.7),
+            "barrel_trim_color": Vec3(.2,.2,.2), "visor_color": Vec3(.3,.6,1),
+            "body_color":Vec3(.6,.2,.2)})
 
-        # Put the hector in the World's render so the lighting applies correctly.
-        #self.h = HectorActor(self.map.world.render, 0, 13, 14, 90)
+        # Put the hector in the World's render so the lighting applies correctly
+        # self.h = HectorActor(self.map.world.render, 0, 13, 14, 90)
 
         self.map.show(self.render)
         taskMgr.add(self.map.world.update, 'worldUpdateTask')
 
-        #axes = loader.loadModel('models/yup-axis')
-        #axes.setScale(10)
-        #axes.reparentTo(render)
+        # axes = loader.loadModel('models/yup-axis')
+        # axes.setScale(10)
+        # axes.reparentTo(render)
 
         host = args[0] if args else 'localhost'
         print 'CONNECTING TO', host
@@ -51,15 +50,15 @@ class Pavara (ShowBase):
         self.setupInput()
 
     def initP3D(self):
-        self.setBackgroundColor(0,0,0)
+        self.setBackgroundColor(0, 0, 0)
         self.enableParticles()
         self.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
         props = WindowProperties()
         props.setCursorHidden(True)
         self.win.requestProperties(props)
-        self.camera.setPos(0,20,40)
-        self.camera.setHpr(0,0,0)
+        self.camera.setPos(0, 20, 40)
+        self.camera.setHpr(0, 0, 0)
         self.floater = NodePath(PandaNode("floater"))
         self.floater.reparentTo(render)
         self.up = Vec3(0, 1, 0)
@@ -69,11 +68,10 @@ class Pavara (ShowBase):
         self.keyMap[key] = value
 
     def drop_blocks(self):
-        block = self.map.world.attach(Block((1, 1, 1), (1, 0, 0, 1), 0.01))
-        block.move((0, 40, 0))
+        block = self.map.world.attach(FreeSolid(Block((1, 1, 1), (1, 0, 0, 1), 0.01, (0, 40, 0), (0, 0, 0)), 0.01))
         for i in range(10):
-            block = self.map.world.attach(Block((1, 1, 1), (1, 0, 0, 1), 0.01))
-            block.move((random.randint(-25, 25), 40, random.randint(-25, 25)))
+            rand_pos = (random.randint(-25, 25), 40, random.randint(-25, 25))
+            block = self.map.world.attach(FreeSolid(Block((1, 1, 1), (1, 0, 0, 1), 0.01, rand_pos, (0, 0, 0)), 0.01))
 
     def setupInput(self):
         self.keyMap = { 'left': 0
@@ -118,7 +116,7 @@ class Pavara (ShowBase):
             self.y = md.getY()
             centerx = self.win.getProperties().getXSize()/2
             centery = self.win.getProperties().getYSize()/2
-            self.win.movePointer(0,centerx,centery)
+            self.win.movePointer(0, centerx, centery)
 
             if (oldx is not None):
                 self.floater.setPos(self.camera, 0, 0, 0)
