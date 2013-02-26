@@ -43,7 +43,7 @@ class Pavara (ShowBase):
         # axes.setScale(10)
         # axes.reparentTo(render)
 
-        host = args[0] if args else 'localhost'
+        host = args[0] if args else '127.0.0.1'
         print 'CONNECTING TO', host
         self.client = Client(self.map.world, host, TCP_PORT)
 

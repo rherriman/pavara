@@ -91,13 +91,15 @@ class PhysicalObject (WorldObject):
         Programmatically set the yaw, pitch, and roll of this object.
         """
         self.node.set_hpr(yaw, pitch, roll)
-
+#        self.moved = True
+        
     def rotate_by(self, yaw, pitch, roll):
         """
         Programmatically rotate this object by the given yaw, pitch, and roll.
         """
         self.node.set_hpr(self.node, yaw, pitch, roll)
-
+#        self.moved = True
+        
     def move(self, center):
         """
         Programmatically move this object to be centered at the given coordinates.
@@ -110,7 +112,8 @@ class PhysicalObject (WorldObject):
         Programmatically move this object by the given distances in each direction.
         """
         self.node.set_fluid_pos(self.node, x, y, z)
-        self.moved = True
+        if x and y and z:
+            self.moved = True
 
     def position(self):
         return self.node.get_pos()
@@ -836,10 +839,7 @@ class World (object):
         return random.choice(self.incarnators)
 
     def create_hector(self, name=None):
-        # TODO: get random incarn, start there
-        h = self.attach(Hector(name))
-        h.move((0, 15, 0))
-        return h
+        return self.attach(Hector(self.get_incarn(), name=name))
 
     def set_ambient(self, color):
         """
