@@ -27,23 +27,22 @@ class Pavara (ShowBase):
         print render.analyze()
 
         # Testing physical hector.
+        """
         incarn = self.map.world.get_incarn()
         self.hector = self.map.world.attach(Hector(incarn))
         self.hector.setupColor({"barrel_color": Vec3(.7,.7,.7),
             "barrel_trim_color": Vec3(.2,.2,.2), "visor_color": Vec3(.3,.6,1),
             "body_color":Vec3(.6,.2,.2)})
-
-        # Put the hector in the World's render so the lighting applies correctly
-        # self.h = HectorActor(self.map.world.render, 0, 13, 14, 90)
+        """
 
         self.map.show(self.render)
-        taskMgr.add(self.map.world.update, 'worldUpdateTask')
+        #taskMgr.add(self.map.world.update, 'worldUpdateTask')
 
         # axes = loader.loadModel('models/yup-axis')
         # axes.setScale(10)
         # axes.reparentTo(render)
 
-        host = args[0] if args else '127.0.0.1'
+        host = args[0] if args else 'localhost'
         print 'CONNECTING TO', host
         self.client = Client(self.map.world, host, TCP_PORT)
 
@@ -73,6 +72,10 @@ class Pavara (ShowBase):
             rand_pos = (random.randint(-25, 25), 40, random.randint(-25, 25))
             block = self.map.world.attach(FreeSolid(Block((1, 1, 1), (1, 0, 0, 1), 0.01, rand_pos, (0, 0, 0)), 0.01))
 
+    def exit(self):
+#        print self.client.flux.buffer
+        sys.exit()
+        
     def setupInput(self):
         self.keyMap = { 'left': 0
                       , 'right': 0
@@ -83,7 +86,7 @@ class Pavara (ShowBase):
                       , 'walkForward': 0
                       , 'crouch': 0
                       }
-        self.accept('escape', sys.exit)
+        self.accept('escape', self.exit)
         self.accept('p', self.drop_blocks)
         self.accept('w', self.setKey, ['forward', 1])
         self.accept('w-up', self.setKey, ['forward', 0])
@@ -93,18 +96,17 @@ class Pavara (ShowBase):
         self.accept('s-up', self.setKey, ['backward', 0])
         self.accept('d', self.setKey, ['right', 1])
         self.accept('d-up', self.setKey, ['right', 0])
-
         # Hector movement.
-        self.accept('i',        self.client.send, ['forward', True])
-        self.accept('i-up',     self.client.send, ['forward', False])
-        self.accept('j',        self.client.send, ['left', True])
-        self.accept('j-up',     self.client.send, ['left', False])
-        self.accept('k',        self.client.send, ['backward', True])
-        self.accept('k-up',     self.client.send, ['backward', False])
-        self.accept('l',        self.client.send, ['right', True])
-        self.accept('l-up',     self.client.send, ['right', False])
-        self.accept('shift',    self.client.send, ['crouch', True])
-        self.accept('shift-up', self.client.send, ['crouch', False])
+        self.accept('i',        self.client.handle_command, ['forward', True])
+        self.accept('i-up',     self.client.handle_command, ['forward', False])
+        self.accept('j',        self.client.handle_command, ['left', True])
+        self.accept('j-up',     self.client.handle_command, ['left', False])
+        self.accept('k',        self.client.handle_command, ['backward', True])
+        self.accept('k-up',     self.client.handle_command, ['backward', False])
+        self.accept('l',        self.client.handle_command, ['right', True])
+        self.accept('l-up',     self.client.handle_command, ['right', False])
+        self.accept('shift',    self.client.handle_command, ['crouch', True])
+        self.accept('shift-up', self.client.handle_command, ['crouch', False])
 
     def move(self, task):
         dt = globalClock.getDt()

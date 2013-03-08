@@ -27,6 +27,7 @@ class WorldObject (object):
     world = None
     last_unique_id = 0
     collide_bits = NO_COLLISION_BITS
+    predictable = False
 
     def __init__(self, name=None):
         self.name = name
@@ -63,7 +64,7 @@ class PhysicalObject (WorldObject):
     node = None
     solid = None
     collide_bits = MAP_COLLIDE_BIT
-    moved = False
+    moved = True
 
     def create_node(self):
         """
@@ -197,7 +198,8 @@ class FreeSolid (Effect):
             self.mass = mass
         Effect.__init__(self, effected)
         self.collide_bits = MAP_COLLIDE_BIT | SOLID_COLLIDE_BIT
-
+        self.predictable = True
+    
     def create_solid(self):
         node = self.effected.create_solid()
         node.set_mass(self.mass if self.mass > 0 else 1)
@@ -219,7 +221,8 @@ class Transparent (Effect):
 class Hector (PhysicalObject):
 
     collide_bits = SOLID_COLLIDE_BIT
-
+    predictable = True
+    
     def __init__(self, incarnator, name=None):
         super(Hector, self).__init__(name=name)
 
@@ -775,6 +778,7 @@ class World (object):
         self.incarnators = []
         self.collidables = set()
         self.updatables = set()
+        self.predictables = set()
         self.render = NodePath('world')
         self.camera = camera
         self.ambient = self._make_ambient()
@@ -808,6 +812,8 @@ class World (object):
         obj.world = self
         if obj.name.startswith('Incarnator'):
             self.incarnators.append(obj)
+        if obj.predictable:
+            self.predictables.add(obj)
         if hasattr(obj, 'create_node') and hasattr(obj, 'create_solid'):
             # Let each object define it's own NodePath, then reparent them.
             obj.node = obj.create_node()
@@ -878,14 +884,23 @@ class World (object):
         assert isinstance(obj, WorldObject)
         self.updatables.add(obj)
 
+    accumulator = 0.0
+    PHYSICS_DT = 1.0 / 50.0
+    frame = 0
+    
     def update(self, task):
         """
         Called every frame to update the physics, etc.
         """
         dt = globalClock.getDt()
-        for obj in self.updatables:
-            obj.update(dt)
-        self.physics.do_physics(dt)
+        self.accumulator += dt
+        while self.accumulator >= self.PHYSICS_DT:
+            self.physics.do_physics(self.PHYSICS_DT)
+            for obj in self.updatables:
+                obj.update(self.PHYSICS_DT)
+            self.accumulator -= self.PHYSICS_DT
+            self.frame += 1
+        """
         for obj in self.collidables:
             result = self.physics.contact_test(obj.node.node())
             for contact in result.get_contacts():
@@ -900,4 +915,5 @@ class World (object):
                             obj1.collision(obj2, pt, True)
                         if obj2 in self.collidables:
                             obj2.collision(obj1, pt, False)
+        """
         return task.cont
