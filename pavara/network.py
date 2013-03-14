@@ -25,12 +25,27 @@ class FluxCapacitor (object):
         for i in range(size):
             self.buffer.append([{}, -1])
         self.oldest = 0
+        self.total_buffered = 0
+
+    def _88mph(self, destination_time, start, size):
+        """
+        Performs a binary search on the gamestate buffer, recursively.
+        """
+        i = (start + (size / 2)) % self.total_buffered
+        if self.buffer[i][1] == destination_time:
+            return self.buffer[i][0]
+        elif size / 2 == 0:
+            print "Frame missing from buffer!"
+            return {}
+        elif self.buffer[i][1] > destination_time:
+            return self._88mph(destination_time, start, int(round(size / 2.0)))
+        else:
+            return self._88mph(destination_time, i, int(round(size / 2.0)))
 
     def find(self, frame):
-        # TODO: replace this with a binary search
-        for obj, obj_frame in self.buffer:
-            if frame == obj_frame:
-                return obj
+        start = self.oldest if self.total_buffered == len(self.buffer) else 0
+        size = self.total_buffered
+        return self._88mph(frame, start, size) if self.total_buffered else {}
 
     def snapshot(self, frame):
         # Get the oldest object and clear it out (re-using it).
@@ -41,13 +56,15 @@ class FluxCapacitor (object):
         self.oldest += 1
         if self.oldest >= len(self.buffer):
             self.oldest = 0
+        if self.total_buffered < len(self.buffer):
+            self.total_buffered += 1
         return obj
 
 class Player (object):
     def __init__(self, pid, hector):
         self.pid = pid
         self.hector = hector
-        
+
     def __repr__(self):
         return 'Player %s' % self.pid
 
@@ -135,7 +152,7 @@ class Client (object):
         datagram.addUint32(self.world.frame)
         datagram.addUint32(num.get_word())
         self.writer.send(datagram, self.connection, self.address)
-    
+
     def handle_command(self, cmd, onoff):
         self.movement[cmd] = onoff
         if self.hector:
@@ -171,7 +188,7 @@ class Client (object):
                         obj.rotate(h, p, r)
 #                        obj.move((x, y, z))
 #                        obj.rotate(h, p, r)
-        
+
     def update(self, task):
         self.send()
         if self.hector:
