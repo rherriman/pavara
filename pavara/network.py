@@ -35,7 +35,6 @@ class FluxCapacitor (object):
         if self.buffer[i][1] == destination_time:
             return self.buffer[i][0]
         elif size / 2 == 0:
-            print "Frame missing from buffer!"
             return {}
         elif self.buffer[i][1] > destination_time:
             return self._88mph(destination_time, start, int(round(size / 2.0)))
