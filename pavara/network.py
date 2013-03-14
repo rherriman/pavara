@@ -27,24 +27,21 @@ class FluxCapacitor (object):
         self.oldest = 0
         self.total_buffered = 0
 
-    def _88mph(self, destination_time, start, size):
-        """
-        Performs a binary search on the gamestate buffer, recursively.
-        """
-        i = (start + (size / 2)) % self.total_buffered
-        if self.buffer[i][1] == destination_time:
-            return self.buffer[i][0]
-        elif size / 2 == 0:
-            return {}
-        elif self.buffer[i][1] > destination_time:
-            return self._88mph(destination_time, start, int(round(size / 2.0)))
-        else:
-            return self._88mph(destination_time, i, int(round(size / 2.0)))
-
     def find(self, frame):
-        start = self.oldest if self.total_buffered == len(self.buffer) else 0
-        size = self.total_buffered
-        return self._88mph(frame, start, size) if self.total_buffered else {}
+        offset = self.oldest if self.total_buffered == len(self.buffer) else 0
+        start = 0
+        end = self.total_buffered - 1
+
+        while start <= end:
+            mid = start + ((end - start) / 2)
+            adjusted = (mid + offset) % self.total_buffered
+            if self.buffer[adjusted][1] == frame:
+                return self.buffer[adjusted][0]
+            elif self.buffer[adjusted][1] > frame:
+                end = mid - 1
+            else:
+                start = mid + 1
+        return {}
 
     def snapshot(self, frame):
         # Get the oldest object and clear it out (re-using it).
