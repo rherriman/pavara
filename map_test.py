@@ -3,11 +3,15 @@ from panda3d.core import *
 from pandac.PandaModules import WindowProperties
 from direct.gui.DirectGui import *
 from direct.showbase.ShowBase import ShowBase
+from direct.showbase import Audio3DManager
+from direct.filter.CommonFilters import CommonFilters
 
 from pavara.maps import load_maps
 from pavara.network import Server, Client
 from pavara.constants import TCP_PORT
-from pavara.world import Block, FreeSolid, Hector
+from pavara.world import Block, FreeSolid
+from pavara.hector import Hector
+
 
 class Pavara (ShowBase):
     def __init__(self, *args):
@@ -17,22 +21,25 @@ class Pavara (ShowBase):
 
         self.x = None
         self.y = None
-
-        # Init Panda3D crap.
+        self.filters = CommonFilters(self.win, self.cam)
+        self.render.setShaderAuto()
         self.initP3D()
-        maps = load_maps('Maps/bodhi.xml', self.cam)
+        self.audio3d = Audio3DManager.Audio3DManager(self.sfxManagerList[0], self.cam)
+        maps = load_maps('Maps/bodhi.xml', self.cam, audio3d=self.audio3d)
         for map in maps:
             print map.name, '--', map.author
         self.map = maps[0]
-        print render.analyze()
 
         # Testing physical hector.
         """
         incarn = self.map.world.get_incarn()
-        self.hector = self.map.world.attach(Hector(incarn))
-        self.hector.setupColor({"barrel_color": Vec3(.7,.7,.7),
-            "barrel_trim_color": Vec3(.2,.2,.2), "visor_color": Vec3(.3,.6,1),
-            "body_color":Vec3(.6,.2,.2)})
+        hector_color_dict = {
+            "barrel_color": [.7,.7,.7],
+            "visor_color": [2.0/255, 94.0/255, 115.0/255],
+            "body_primary_color": [3.0/255, 127.0/255, 140.0/255],
+            "body_secondary_color": [217.0/255, 213.0/255, 154.0/255]
+        }
+        self.hector = self.map.world.attach(Hector(incarn, colordict=hector_color_dict))
         """
 
         self.map.show(self.render)
@@ -50,7 +57,6 @@ class Pavara (ShowBase):
 
     def initP3D(self):
         self.setBackgroundColor(0, 0, 0)
-        self.enableParticles()
         self.disableMouse()
         render.setAntialias(AntialiasAttrib.MAuto)
         props = WindowProperties()
@@ -75,7 +81,7 @@ class Pavara (ShowBase):
     def exit(self):
 #        print self.client.flux.buffer
         sys.exit()
-        
+
     def setupInput(self):
         self.keyMap = { 'left': 0
                       , 'right': 0
@@ -85,6 +91,8 @@ class Pavara (ShowBase):
                       , 'rotateRight': 0
                       , 'walkForward': 0
                       , 'crouch': 0
+                      , 'fire': 0
+                      , 'missile': 0
                       }
         self.accept('escape', self.exit)
         self.accept('p', self.drop_blocks)
@@ -107,6 +115,10 @@ class Pavara (ShowBase):
         self.accept('l-up',     self.client.handle_command, ['right', False])
         self.accept('shift',    self.client.handle_command, ['crouch', True])
         self.accept('shift-up', self.client.handle_command, ['crouch', False])
+        self.accept('mouse1',   self.client.handle_command, ['fire', True])
+        self.accept('mouse1-up',self.client.handle_command, ['fire', False])
+        self.accept('u',        self.client.handle_command, ['missile', True])
+        self.accept('u-up',     self.client.handle_command, ['missile', False])
 
     def move(self, task):
         dt = globalClock.getDt()

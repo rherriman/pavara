@@ -42,21 +42,24 @@ class Map (object):
     has_celestials = False
     effects = []
 
-    def __init__(self, root, camera):
+    def __init__(self, root, camera, audio3d=None):
         self.name = root['name'] or 'Untitled Map'
         self.author = root['author'] or 'Unknown Author'
         self.tagline = root['tagline']
         self.description = root['description'] or 'No description.'
-        self.world = World(camera, debug=parse_bool(root['debug']))
+        self.world = World(camera, debug=parse_bool(root['debug']), audio3d=audio3d)
         self.process_children(root)
         if not self.has_celestials:
-            self.world.add_celestial(math.radians(20), math.radians(45), (1, 1, 1, 1), 0.4, 1.0, False)
-            self.world.add_celestial(math.radians(200), math.radians(20), (1, 1, 1, 1), 0.3, 1.0, False)
+            self.world.add_celestial(math.radians(20), math.radians(45), (1, 1, 1, 1), 0.4, 30.0, False)
+            self.world.add_celestial(math.radians(200), math.radians(20), (1, 1, 1, 1), 0.3, 30.0, False)
+        self.world.create_celestial_node()
 
     def show(self, render):
         """
         Reparents the root NodePath of this Map's World to the given NodePath.
         """
+        self.world.render.setColorOff()
+        self.world.render.node().setAttrib(ColorAttrib.makeVertex())
         self.world.render.reparent_to(render)
 
     def process_children(self, node):
@@ -97,8 +100,7 @@ class Map (object):
     def parse_incarnator(self, node):
         pos = parse_vector(node['location'])
         heading = parse_float(node['heading'])
-        incarn = self.wrap_object(Incarnator(pos, heading, name=node['id']))
-        self.world.attach(incarn)
+        incarn = self.world.attach(self.wrap_object(Incarnator(pos, heading, name=node['id'])))
 
     def parse_block(self, node):
         center = parse_vector(node['center'])
@@ -113,14 +115,37 @@ class Map (object):
     def parse_ramp(self, node):
         base = parse_vector(node['base'])
         top = parse_vector(node['top'], (0, 4, 4))
-        width = parse_float(node['width'], 8)
         thickness = parse_float(node['thickness'])
+        width = parse_float(node['width'], 8)
         color = parse_color(node['color'], (1, 1, 1, 1))
         mass = parse_float(node['mass'])
         yaw = parse_float(node['yaw'])
         pitch = parse_float(node['pitch'])
         roll = parse_float(node['roll'])
         ramp = self.world.attach(self.wrap_object(Ramp(base, top, width, thickness, color, mass, (yaw, pitch, roll), name=node['id'])))
+
+    def parse_wedge(self, node):
+        base = parse_vector(node['base'])
+        top = parse_vector(node['top'], (0, 4, 4))
+        width = parse_float(node['width'], 8)
+        color = parse_color(node['color'], (1, 1, 1, 1))
+        mass = parse_float(node['mass'])
+        yaw = parse_float(node['yaw'])
+        pitch = parse_float(node['pitch'])
+        roll = parse_float(node['roll'])
+        wedge = self.world.attach(self.wrap_object(Wedge(base, top, width, color, mass, (yaw, pitch, roll), name=node['id'])))
+
+    def parse_blockramp(self, node):
+        base = parse_vector(node['base'])
+        top = parse_vector(node['top'], (0, 4, 4))
+        thickness = parse_float(node['thickness'])
+        width = parse_float(node['width'], 8)
+        color = parse_color(node['color'], (1, 1, 1, 1))
+        mass = parse_float(node['mass'])
+        yaw = parse_float(node['yaw'])
+        pitch = parse_float(node['pitch'])
+        roll = parse_float(node['roll'])
+        ramp = self.world.attach(self.wrap_object(BlockRamp(base, top, width, thickness, color, mass, (yaw, pitch, roll), name=node['id'])))
 
     def parse_ground(self, node):
         color = parse_color(node['color'], (1, 1, 1, 1))
@@ -130,22 +155,24 @@ class Map (object):
     def parse_goody(self, node):
         model = node["model"]
         pos = parse_vector(node["location"])
-        grenades = node["grenades"] or 0
-        missles = node["missles"] or 0
-        boosters = node["boosters"] or 0
-        respawn = node["respawn"] or 8 #default spawn time
-        spin = parse_vector(node['spin']) or Vec3(60,0,0)
+        grenades = parse_int(node["grenades"])
+        missles = parse_int(node["missles"])
+        boosters = parse_int(node["boosters"])
+        respawn = parse_float(node["respawn"], 8.0) # Default spawn time.
+        spin = parse_vector(node['spin'])
         goody = self.world.attach(self.wrap_object(Goody(pos, model, (grenades, missles, boosters), respawn, spin)))
 
     def parse_dome(self, node):
         center = parse_vector(node['center'])
         radius = parse_float(node['radius'], 2.5)
+        samples = parse_int(node['samples'], 8)
+        planes = parse_int(node['planes'], 5)
         color = parse_color(node['color'], (1, 1, 1, 1))
         mass = parse_float(node['mass'])
         yaw = parse_float(node['yaw'])
         pitch = parse_float(node['pitch'])
         roll = parse_float(node['roll'])
-        dome = self.world.attach(self.wrap_object(Dome(radius, color, mass, center, (yaw, pitch, roll), name=node['id'])))
+        dome = self.world.attach(self.wrap_object(Dome(radius, samples, planes, color, mass, center, (yaw, pitch, roll), name=node['id'])))
 
     def parse_sky(self, node):
         color = parse_color(node['color'], DEFAULT_SKY_COLOR)
@@ -164,7 +191,8 @@ class Map (object):
             color = parse_color(child['color'], (1, 1, 1, 1))
             intensity = parse_float(child['intensity'], 0.6)
             visible = parse_bool(child['visible'])
-            self.world.add_celestial(azimuth, elevation, color, intensity, 1.0, visible)
+            size = parse_float(child['size'], 30.0)
+            self.world.add_celestial(azimuth, elevation, color, intensity, size, visible)
             self.has_celestials = True
 
         for child in node.children('starfield'):
@@ -172,8 +200,8 @@ class Map (object):
             count = parse_int(child['count'])
             min_color = parse_color(child['minColor'], (1, 1, 1, 1))
             max_color = parse_color(child['maxColor'], (1, 1, 1, 1))
-            min_size = parse_float(child['minSize'], 0.025)
-            max_size = parse_float(child['maxSize'], 0.025)
+            min_size = parse_float(child['minSize'], 0.4)
+            max_size = parse_float(child['maxSize'], 1.0)
             mode = child['mode'] or 'default'
             mode = mode.strip().lower()
             min_r = min_color[0]
@@ -214,16 +242,18 @@ class Map (object):
                 color = (r, g, b, 1 - (1 - phi/math.pi)**6)
                 size = min_size + random.random() * delta_size
                 self.world.add_celestial(theta, phi, color, 0, size, True)
+            # Reset the seed.
+            random.seed()
 
-def load_maps(path, camera=None):
+def load_maps(path, camera=None, audio3d=None):
     """
     Given a path to an XML file and the camera, returns a list of parsed/populated Map objects.
     """
     root = drill.parse(path)
     if root.tagname.lower() == 'map':
-        return [Map(root, camera)]
+        return [Map(root, camera, audio3d=audio3d)]
     else:
         maps = []
         for map_root in root.find('map'):
-            maps.append(Map(map_root, camera))
+            maps.append(Map(map_root, camera, audio3d=audio3d))
         return maps

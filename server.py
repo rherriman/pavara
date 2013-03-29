@@ -1,12 +1,10 @@
-import sys, random
+import sys
 from panda3d.core import *
-from pandac.PandaModules import WindowProperties
 from direct.gui.DirectGui import *
 from direct.showbase.ShowBase import ShowBase
 
 from pavara.maps import load_maps
-from pavara.world import Block, Hector
-from pavara.network import Server, Client
+from pavara.network import Server
 from pavara.constants import TCP_PORT
 
 class PavaraServer (ShowBase):
