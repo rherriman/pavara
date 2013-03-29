@@ -2,8 +2,8 @@ import sys, random
 from panda3d.core import *
 from pandac.PandaModules import WindowProperties
 from direct.gui.DirectGui import *
-from direct.showbase.ShowBase import ShowBase
 from direct.showbase import Audio3DManager
+from direct.showbase.ShowBase import ShowBase
 from direct.filter.CommonFilters import CommonFilters
 
 from pavara.maps import load_maps

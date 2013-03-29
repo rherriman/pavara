@@ -631,13 +631,11 @@ class Incarnator (PhysicalObject):
     def attached(self):
         self.dummy_node = self.world.render.attach_new_node("incarnator"+self.name)
         self.dummy_node.set_pos(self.world.render, self.pos)
-        if self.world.audio3d:
-            self.sound = self.world.audio3d.loadSfx('Sounds/incarnation_mono.wav')
+        self.sound = self.world.audio3d.loadSfx('Sounds/incarnation_mono.wav')
 
     def was_used(self):
-        if self.world.audio3d:
-            self.world.audio3d.attachSoundToObject(self.sound, self.dummy_node)
-            self.sound.play()
+        self.world.audio3d.attachSoundToObject(self.sound, self.dummy_node)
+        self.sound.play()
 
 class Plasma (PhysicalObject):
     def __init__(self, pos, hpr, energy, name=None):
@@ -900,7 +898,14 @@ class World (object):
         return random.choice(self.incarnators)
 
     def create_hector(self, name=None):
-        return self.attach(Hector(self.get_incarn(), name=name))
+        hector_color_dict = {
+            "barrel_color": [.7,.7,.7],
+            "visor_color": [2.0/255, 94.0/255, 115.0/255],
+            "body_primary_color": [random.random(), random.random(), random.random()],
+            "body_secondary_color": [random.random(), random.random(), random.random()]
+        }
+        return self.attach(Hector(self.get_incarn(), name=name,
+            colordict=hector_color_dict))
 
     def set_ambient(self, color):
         """
