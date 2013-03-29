@@ -44,7 +44,7 @@ class Friction(Integrator):
 
     def acceleration(self, x, v, dt):
         direction = self.accel - v
-        if direction.length() > self.friction / 5.0:
+        if direction.length() > self.friction / 3.0:
             direction.normalize()
             return direction * self.friction * 70
         else:

@@ -135,7 +135,7 @@ class Hector (PhysicalObject):
             'backward': -7.5,
             'left': 2.0,
             'right': -2.0,
-            'crouch': 0.0,
+            'crouch': 1.0,
         }
         self.movement = {
             'forward': 0.0,
@@ -152,6 +152,27 @@ class Hector (PhysicalObject):
         self.right_gun_charge = 1.0
         self.primary_color = [1,1,1,1]
         self.colordict = colordict if colordict else None
+
+    def add_update(self, datagram):
+        if not self.moved:
+            return
+        pos = self.position()
+        hpr = self.node.get_hpr()
+        datagram.addString(self.name)
+        datagram.addUint8(12)
+        datagram.addFloat32(pos.x)
+        datagram.addFloat32(pos.y)
+        datagram.addFloat32(pos.z)
+        datagram.addFloat32(hpr.x)
+        datagram.addFloat32(hpr.y)
+        datagram.addFloat32(hpr.z)
+        datagram.addFloat32(self.xz_velocity.x)
+        datagram.addFloat32(self.xz_velocity.y)
+        datagram.addFloat32(self.xz_velocity.z)
+        datagram.addFloat32(self.y_velocity.x)
+        datagram.addFloat32(self.y_velocity.y)
+        datagram.addFloat32(self.y_velocity.z)
+
 
     def get_model_part(self, obj_name):
         return self.actor.find("**/%s" % obj_name)
@@ -243,7 +264,7 @@ class Hector (PhysicalObject):
         print self, 'HIT BY', other, 'AT', world_pt
 
     def handle_command(self, cmd, pressed):
-        if cmd is 'crouch' and not pressed and self.on_ground:
+        if cmd is 'crouch' and self.movement['crouch'] > 0 and not pressed and self.on_ground:
             self.y_velocity = Vec3(0, 6.8, 0)
         if cmd is 'fire' and pressed:
             self.handle_fire()

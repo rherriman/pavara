@@ -12,12 +12,14 @@ MOVEMENT_MASKS = {
     'backward': BitMask32(0x02),
     'left': BitMask32(0x04),
     'right': BitMask32(0x08),
+    'crouch': BitMask32(0x10),
 }
 
 FORWARD_MASK = BitMask32(0x01)
 BACKWARD_MASK = BitMask32(0x02)
 LEFT_MASK = BitMask32(0x04)
 RIGHT_MASK = BitMask32(0x08)
+CROUCH_MASK = BitMask32(0x10)
 
 class FluxCapacitor (object):
     def __init__(self, size=500):
@@ -136,6 +138,7 @@ class Client (object):
             'backward': False,
             'left': False,
             'right': False,
+            'crouch': False,
         }
         taskMgr.add(self.update, 'clientUpdatesFromServer')
 
@@ -161,12 +164,14 @@ class Client (object):
         num_objects = update.getInt8()
         for i in range(num_objects):
             name = update.getString()
-            x = update.getFloat32()
-            y = update.getFloat32()
-            z = update.getFloat32()
-            h = update.getFloat32()
-            p = update.getFloat32()
-            r = update.getFloat32()
+            numfloats = update.getUint8()
+            floats = [update.getFloat32() for _ in range(numfloats)]
+            x = floats[0]
+            y = floats[1]
+            z = floats[2]
+            h = floats[3]
+            p = floats[4]
+            r = floats[5]
             obj = self.world.objects.get(name)
             if obj:
                 new_pos = Point3(x, y, z)
@@ -182,6 +187,13 @@ class Client (object):
                             obj.move_by(d.x * 0.5, d.y * 0.5, d.z * 0.5)
                         print '%s CORRECTION [server t=%s] %s :: %s -> %s' % (qual, server_frame, obj, old_pos, new_pos)
                         obj.rotate(h, p, r)
+                        if len(floats) == 12:
+                            obj.xz_velocity.x = floats[6]
+                            obj.xz_velocity.y = floats[7]
+                            obj.xz_velocity.z = floats[8]
+                            obj.y_velocity.x = floats[9]
+                            obj.y_velocity.y = floats[10]
+                            obj.y_velocity.z = floats[11]
 #                        obj.move((x, y, z))
 #                        obj.rotate(h, p, r)
 

@@ -146,6 +146,7 @@ class PhysicalObject (WorldObject):
         pos = self.position()
         hpr = self.node.get_hpr()
         datagram.addString(self.name)
+        datagram.addUint8(6)
         datagram.addFloat32(pos.x)
         datagram.addFloat32(pos.y)
         datagram.addFloat32(pos.z)
@@ -964,14 +965,14 @@ class World (object):
         Called every frame to update the physics, etc.
         """
         dt = globalClock.getDt()
+        self.accumulator += dt
+        #print self.accumulator
         for obj in self.updatables_to_add:
             self.updatables.add(obj)
         self.updatables_to_add = set()
         self.updatables -= self.garbage
         self.collidables -= self.garbage
-        while True:
-            if len(self.garbage) < 1:
-                break;
+        while self.garbage:
             trash = self.garbage.pop()
             if(isinstance(trash.solid, BulletGhostNode)):
                 self.physics.remove_ghost(trash.solid)
